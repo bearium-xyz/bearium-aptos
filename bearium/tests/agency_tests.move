@@ -1,19 +1,15 @@
 #[test_only]
 module bearium::agency_tests {
     use bearium::marketplace;
-    use bearium::peer::{Self, Peer};
     use bearium::room;
 
-    use aptos_framework::coin;
-    use aptos_framework::aptos_coin::{Self, AptosCoin};
+    use bearium::test_helpers;
+
     use aptos_framework::event;
-    use aptos_framework::fungible_asset::{Metadata, FungibleAsset};
-    use aptos_framework::object::{Self, Object};
     use aptos_framework::primary_fungible_store;
 
     use std::bcs;
     use std::debug;
-    use std::option;
     use std::signer;
 
     #[test(
@@ -43,12 +39,9 @@ module bearium::agency_tests {
         marketplace::bond(player, marketplace_id, inviter);
         
         // APT peer
-        let (metadata, asset) = apt_apt(fx, 100_000_000);
-        let peer_id = peer::iam(metadata);
-        let peer = object::address_to_object<Peer>(peer_id);
-        let metabase = object::address_to_object<Metadata>(peer_id);
+        let (metadata, asset) = test_helpers::apt_apt(fx, 100_000_000);
         let user = signer::address_of(player);
-        primary_fungible_store::deposit(user, asset);
+        let (peer_id, peer, metabase) = test_helpers::make_peer(asset, user);
 
         // Agent
         let stakes = room::hold(player, peer, 1000, 0);
@@ -80,16 +73,5 @@ module bearium::agency_tests {
         assert!(marketplace_alpha == 4);
         assert!(inviter_alpha == 16);
         assert!(user_alpha == 1000 - marketplace_alpha - inviter_alpha);
-    }
-
-    fun apt_apt(fx: &signer, amount: u64): (Object<Metadata>, FungibleAsset) {
-        let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(fx);
-        let coins = coin::mint<AptosCoin>(amount, &mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-        coin::destroy_mint_cap(mint_cap);
-        (
-            option::extract(&mut coin::paired_metadata<AptosCoin>()),
-            coin::coin_to_fungible_asset(coins),
-        )
     }
 }

@@ -65,12 +65,12 @@ module bearium::room {
         face_bps: u32, // zero to odds
         edge_bps: u16, // instant rate
         extra: vector<u8>
-    ) acquires Agency {
+    ): u64 acquires Agency {
         let peer_id = object::object_address(&peer);
         // capture
         if (face_bps == 0) {
             peer::capture(peer_id, stakes);
-            return
+            return 0
         };
         // default
         let pledge = 0;
@@ -81,7 +81,7 @@ module bearium::room {
             vector::for_each_reverse(stakes, |r| {
                 fungible_asset::destroy_zero(r)
             });
-            return
+            return 0
         };
         let rewards = derive_proportion(pledge, face_bps);
         let surplus = rewards - pledge;
@@ -106,10 +106,12 @@ module bearium::room {
         };
 
         // Payout
+        let profit = fungible_asset::amount(&present);
         vector::push_back(&mut stakes, present);
         vector::for_each_reverse(stakes, |r| {
             primary_fungible_store::deposit(winner, r);
-        })
+        });
+        profit
     }
 
     fun type_to_address<ORIGIN>(): address {
