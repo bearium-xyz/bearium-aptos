@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 module bearium::room {
+    // Demonstrates an OpEx hook for marketplace portals
+    use bearium::marketplace;
+
     use bearium::peer::{Self, Peer};
 
     use aptos_framework::fungible_asset::{Self, Metadata, FungibleAsset};
@@ -61,7 +64,7 @@ module bearium::room {
         stakes: vector<FungibleAsset>,
         face_bps: u32, // zero to odds
         edge_bps: u16, // instant rate
-        _extra: vector<u8>
+        extra: vector<u8>
     ) acquires Agency {
         let peer_id = object::object_address(&peer);
         // capture
@@ -99,6 +102,7 @@ module bearium::room {
         if (table::contains(registry, og)) {
             let dispatch = *table::borrow(registry, og);
             assert!(dispatch == true); // this is the placeholder for hooks
+            marketplace::dispatch(winner, rewards, &mut present, extra);
         };
 
         // Payout
