@@ -1,0 +1,14 @@
+[package]
+name = "Bearium"
+version = "1.0.0"
+
+[addresses]
+bearium = "_"
+
+[dev-addresses]
+bearium = "0xba5e"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
