@@ -30,7 +30,8 @@ module bearium::room {
         init_module(moor);
     }
 
-    public fun register_agent<ORIGIN>() acquires Agency {
+    /// This is the placeholder for future hook registrations
+    entry fun register_agent<ORIGIN>() acquires Agency {
         let og = type_to_address<ORIGIN>();
         assert!(og == @bearium);
         let registry = &mut Agency[@bearium].registry;

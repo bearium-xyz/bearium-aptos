@@ -65,13 +65,14 @@ module bearium::peer {
     }
 
     inline fun genesis(iam: &ConstructorRef, meta: Object<Metadata>): (CreditRights, Object<Metadata>) {
-        // Most fields are kept the same as the base asset
-        // such as the name and symbol, due to string length limitations.
+        let name = string::utf8(b"Alpha ");
+        let symbol = fungible_asset::symbol(meta);
+        string::append(&mut name, symbol);
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             iam,
             option::none(), // unlimited supply
-            fungible_asset::name(meta),
-            fungible_asset::symbol(meta),
+            name,
+            symbol,
             fungible_asset::decimals(meta),
             fungible_asset::icon_uri(meta),
             string::utf8(b"alpha.apt"),
