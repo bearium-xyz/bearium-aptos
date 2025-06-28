@@ -1,11 +1,12 @@
 #[test_only]
 module bearium::agency_tests {
-    use bearium::marketplace;
+    use bearium::marketplace::{Self, Marketplace};
     use bearium::room;
 
     use bearium::test_helpers;
 
     use aptos_framework::event;
+    use aptos_framework::object;
     use aptos_framework::primary_fungible_store;
 
     use std::bcs;
@@ -31,7 +32,10 @@ module bearium::agency_tests {
         room::register_agent<marketplace::Origin>();
 
         // Marketplace
-        let marketplace_id = marketplace::iam(host, 20, 80);
+        let marketplace_id = marketplace::iam(host);
+        let marketplace = object::address_to_object<Marketplace>(marketplace_id);
+        marketplace::update_marketplace_bps(host, marketplace, 20);
+        marketplace::update_referral_commission_bps(host, marketplace, 80);
         let extra = bcs::to_bytes(&marketplace_id);
 
         // Referral
