@@ -41,7 +41,7 @@ module bearium::agency_tests {
 
         // Referral
         let inviter = @0xc0ffee;
-        marketplace::bond(player, marketplace_id, inviter);
+        marketplace::bond(player, marketplace, inviter);
 
         // Skin
         marketplace::update_skin_commission_bps(host, marketplace, 50);

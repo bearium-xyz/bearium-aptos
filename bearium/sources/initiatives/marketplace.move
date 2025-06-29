@@ -172,9 +172,10 @@ module bearium::marketplace {
     // Referral
     //---------
 
-    public entry fun bond(user: &signer, marketplace_id: address, inviter: address) acquires Referral {
-        let invitee = signer::address_of(user);
+    public entry fun bond<T: key>(user: &signer, marketplace: Object<T>, inviter: address) acquires Referral {
+        let marketplace_id = object::object_address(&marketplace);
         let registry = &mut Referral[marketplace_id].registry;
+        let invitee = signer::address_of(user);
         table::add(registry, invitee, inviter);
     }
 
