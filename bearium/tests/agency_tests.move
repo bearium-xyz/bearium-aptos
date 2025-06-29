@@ -12,6 +12,7 @@ module bearium::agency_tests {
     use std::bcs;
     use std::debug;
     use std::signer;
+    use std::vector;
 
     #[test(
         fx = @aptos_framework,
@@ -34,14 +35,21 @@ module bearium::agency_tests {
         // Marketplace
         let marketplace_id = marketplace::iam(host);
         let marketplace = object::address_to_object<Marketplace>(marketplace_id);
-        marketplace::update_marketplace_bps(host, marketplace, 20);
-        marketplace::update_referral_commission_bps(host, marketplace, 80);
+        marketplace::update_marketplace_bps(host, marketplace, 10);
+        marketplace::update_referral_commission_bps(host, marketplace, 40);
         let extra = bcs::to_bytes(&marketplace_id);
 
         // Referral
         let inviter = @0xc0ffee;
         marketplace::bond(player, marketplace_id, inviter);
-        
+
+        // Skin
+        marketplace::update_skin_commission_bps(host, marketplace, 50);
+        let builder = @0x1337;
+        let skin_id = x"8583d0c1560ca905a74ed46a0cb2bc33a65f3658";
+        marketplace::add_skin(host, marketplace, skin_id, builder);
+        vector::append(&mut extra, bcs::to_bytes(&skin_id));
+
         // APT peer
         let (metadata, asset) = test_helpers::apt_apt(fx, 100_000_000);
         let user = signer::address_of(player);
@@ -69,13 +77,17 @@ module bearium::agency_tests {
         let marketplace_alpha = primary_fungible_store::balance(marketplace_id, metabase);
         let inviter_asset = primary_fungible_store::balance(inviter, metadata);
         let inviter_alpha = primary_fungible_store::balance(inviter, metabase);
+        let builder_asset = primary_fungible_store::balance(builder, metadata);
+        let builder_alpha = primary_fungible_store::balance(builder, metabase);
         assert!(user_asset == 100_000_000);
         assert!(peer_asset == 0);
         assert!(marketplace_asset == 0);
         assert!(inviter_asset == 0);
+        assert!(builder_asset == 0);
         assert!(peer_alpha == 0);
-        assert!(marketplace_alpha == 4);
-        assert!(inviter_alpha == 16);
-        assert!(user_alpha == 1000 - marketplace_alpha - inviter_alpha);
+        assert!(marketplace_alpha == 2);
+        assert!(inviter_alpha == 8);
+        assert!(builder_alpha == 10);
+        assert!(user_alpha == 1000 - marketplace_alpha - inviter_alpha - builder_alpha);
     }
 }
