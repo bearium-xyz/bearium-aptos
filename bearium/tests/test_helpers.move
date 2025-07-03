@@ -1,6 +1,7 @@
 #[test_only]
 module bearium::test_helpers {
     use bearium::peer::{Self, Peer};
+    use bearium::room;
 
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::{Self, AptosCoin};
@@ -32,5 +33,29 @@ module bearium::test_helpers {
             peer,
             metabase
         )
+    }
+
+    //------------------
+    // Alpha Test Rights
+    //------------------
+
+    public fun hold(
+        iam: &signer,
+        peer: Object<Peer>,
+        charge: u64,
+        credit: u64,
+    ): vector<FungibleAsset> {
+        room::hold(iam, peer, charge, credit)
+    }
+
+    public fun disburse<ORIGIN>(
+        iam: &signer,
+        peer: Object<Peer>,
+        stakes: vector<FungibleAsset>,
+        face_bps: u32, // zero to odds
+        edge_bps: u16, // instant rate
+        extra: vector<u8>
+    ): u64 {
+        room::disburse<ORIGIN>(iam, peer, stakes, face_bps, edge_bps, extra)
     }
 }

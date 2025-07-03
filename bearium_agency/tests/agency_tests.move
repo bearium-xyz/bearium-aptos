@@ -1,9 +1,9 @@
 #[test_only]
-module bearium::agency_tests {
-    use bearium::marketplace::{Self, Marketplace};
+module bearium_agency::agency_tests {
     use bearium::room;
-
     use bearium::test_helpers;
+
+    use bearium_agency::marketplace::{Self, Marketplace};
 
     use aptos_framework::event;
     use aptos_framework::object;
@@ -17,12 +17,14 @@ module bearium::agency_tests {
     #[test(
         fx = @aptos_framework,
         bearium = @bearium,
+        agency = @bearium_agency,
         host = @0x42,
         player = @0xcafe,
     )]
     fun test_agency(
         fx: &signer,
         bearium: &signer,
+        agency: &signer,
         host: &signer,
         player: &signer,
     ) {
@@ -30,7 +32,7 @@ module bearium::agency_tests {
         room::init_module_test(bearium);
         
         // Agency
-        room::register_agent<marketplace::Origin>();
+        marketplace::register_hook(agency);
 
         // Marketplace
         let marketplace_id = marketplace::iam(host);
@@ -56,8 +58,8 @@ module bearium::agency_tests {
         let (peer_id, peer, metabase) = test_helpers::make_peer(asset, user);
 
         // Agent
-        let stakes = room::hold(player, peer, 1000, 0);
-        room::disburse<marketplace::Origin>(
+        let stakes = test_helpers::hold(player, peer, 1000, 0);
+        test_helpers::disburse<marketplace::Origin>(
             player,
             peer,
             stakes,
