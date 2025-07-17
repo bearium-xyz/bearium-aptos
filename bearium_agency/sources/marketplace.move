@@ -14,8 +14,8 @@
 /// - Demonstrates the referral feature (via campaign hooks).
 ///
 /// This implementation is designed for demonstration, extensibility, and early builder adoption.
-module bearium::marketplace {
-    friend bearium::room;
+module bearium_agency::marketplace {
+    use bearium::room;
 
     use aptos_framework::event;
     use aptos_framework::fungible_asset::{Self, FungibleAsset};
@@ -108,7 +108,7 @@ module bearium::marketplace {
     }
 
     #[persistent]
-    public(friend) fun dispatch(
+    fun dispatch(
         winner: address,
         gross_reward: u64,
         credit: &mut FungibleAsset,
@@ -149,6 +149,10 @@ module bearium::marketplace {
             marketplace_id: bcs_stream::deserialize_address(&mut stream),
             skin_id: bcs_stream::deserialize_vector(&mut stream, |stream| bcs_stream::deserialize_u8(stream)),
         }
+    }
+
+    public entry fun register_hook(package_owner: &signer) {
+        room::register_agent<Origin>(package_owner, room::wrap(dispatch));
     }
 
     //-----
