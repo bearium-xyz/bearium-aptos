@@ -114,14 +114,14 @@ module bearium::room {
     //--------------
 
     public fun register_agent<ORIGIN>(code_owner: &signer, f: Dispatch) acquires Agency {
-        let builder = signer::address_of(code_owner);
-        enforce_code_object_owner<ORIGIN>(builder);
+        enforce_code_object_owner<ORIGIN>(code_owner);
         let og = type_to_address<ORIGIN>();
         let registry = &mut Agency[@bearium].registry;
         table::add(registry, og, f);
     }
 
-    fun enforce_code_object_owner<ORIGIN>(caller: address) {
+    fun enforce_code_object_owner<ORIGIN>(code_owner: &signer) {
+        let caller = signer::address_of(code_owner);
         let code = type_to_address<ORIGIN>();
         
         // deploy module under an account
