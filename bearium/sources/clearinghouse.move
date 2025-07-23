@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 module bearium::room {
-    // Demonstrates an OpEx hook for marketplace portals
-    use bearium::marketplace;
-
     use bearium::peer::{Self, Peer};
 
     use aptos_framework::fungible_asset::{Self, Metadata, FungibleAsset};
-    use aptos_framework::object::{Self, Object};
+    use aptos_framework::object::{Self, Object, ObjectCore};
     use aptos_framework::primary_fungible_store;
 
     use aptos_std::table::{Self, Table};
@@ -16,8 +13,10 @@ module bearium::room {
     use std::vector;
 
     struct Agency has key {
-        registry: Table<address, bool>, // key must be a module address for future hooks
+        registry: Table<address, Dispatch>, // key must be a module address
     }
+
+    struct Dispatch(|address, u64, &mut FungibleAsset, vector<u8>|) has copy, store;
 
     fun init_module(moor: &signer) {
         move_to(moor, Agency {
@@ -30,13 +29,9 @@ module bearium::room {
         init_module(moor);
     }
 
-    /// This is the placeholder for future hook registrations
-    public entry fun register_agent<ORIGIN>() acquires Agency {
-        let og = type_to_address<ORIGIN>();
-        assert!(og == @bearium);
-        let registry = &mut Agency[@bearium].registry;
-        table::add(registry, og, true);
-    }
+    //-------------
+    // Alpha Rights
+    //-------------
 
     package fun hold(
         iam: &signer,
@@ -102,8 +97,7 @@ module bearium::room {
         let registry = &Agency[@bearium].registry;
         if (table::contains(registry, og)) {
             let dispatch = *table::borrow(registry, og);
-            assert!(dispatch == true); // this is the placeholder for hooks
-            marketplace::dispatch(winner, rewards, &mut present, extra);
+            dispatch(winner, rewards, &mut present, extra);
         };
 
         // Payout
@@ -114,6 +108,39 @@ module bearium::room {
         });
         profit
     }
+
+    //--------------
+    // Agentic Hooks
+    //--------------
+
+    public fun register_agent<ORIGIN>(code_owner: &signer, f: Dispatch) acquires Agency {
+        enforce_code_object_owner<ORIGIN>(code_owner);
+        let og = type_to_address<ORIGIN>();
+        let registry = &mut Agency[@bearium].registry;
+        table::add(registry, og, f);
+    }
+
+    fun enforce_code_object_owner<ORIGIN>(code_owner: &signer) {
+        let caller = signer::address_of(code_owner);
+        let code = type_to_address<ORIGIN>();
+        
+        // deploy module under an account
+        if (caller == code) return;
+        
+        // deploy module under an object
+        let code_object = object::address_to_object<ObjectCore>(code);
+        assert!(object::is_owner(code_object, caller));
+    }
+
+    public fun wrap(
+        f: |address, u64, &mut FungibleAsset, vector<u8>| has copy+store
+    ): Dispatch {
+        Dispatch(f)
+    }
+
+    //----------
+    // Utilities
+    //----------
 
     fun type_to_address<ORIGIN>(): address {
         let og_type = type_info::type_of<ORIGIN>();
