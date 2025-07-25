@@ -36,7 +36,7 @@ module bearium::toss {
         let result = if (actual == 1) true else false;
         let face_bps = face_bps(result, outcome);
         let edge_bps = edge_bps();
-        let profit = room::disburse<ORIGIN>(
+        let payout = room::disburse<ORIGIN>(
             iam, peer,
             stakes,
             face_bps,
@@ -47,13 +47,14 @@ module bearium::toss {
         event::emit(Toss {
             peer_id: object::object_address(&peer),
             player: signer::address_of(iam),
-            expect: outcome,
-            result,
             charge,
             credit,
-            profit,
+            profit: payout - charge - credit,
             face_bps,
             edge_bps,
+            // specific
+            expect: outcome,
+            result,
         });
     }
 
