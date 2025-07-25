@@ -59,6 +59,18 @@ module bearium::room {
         stakes
     }
 
+    /// Disburses funds based on game outcome.
+    ///
+    /// Handles capture, partial return, or surplus payout depending on `face_bps`.
+    /// Applies edge fees, invokes optional OpEx hooks, and finalizes player settlement.
+    ///
+    /// Returns:
+    /// - The player's final payout (net of CapEx and OpEx)
+    ///
+    /// Notes:
+    /// - If `face_bps == 0`: full loss, all stakes captured.
+    /// - If `face_bps <= 100_00`: partial return, remainder captured.
+    /// - If `face_bps > 100_00`: rewards distributed, fees applied.
     package fun disburse<ORIGIN>(
         iam: &signer,
         peer: Object<Peer>,
@@ -68,12 +80,7 @@ module bearium::room {
         extra: vector<u8>
     ): u64 acquires Agency {
         let peer_id = object::object_address(&peer);
-        // capture
-        if (face_bps == 0) {
-            peer::capture(peer_id, stakes);
-            return 0
-        };
-        // default
+
         let pledge = 0;
         vector::for_each_ref(&stakes, |c| {
             pledge += fungible_asset::amount(c)
@@ -84,11 +91,40 @@ module bearium::room {
             });
             return 0
         };
+
         let rewards = derive_proportion(pledge, face_bps);
+        let player = signer::address_of(iam);
+
+        // full capture
+        if (face_bps == 0) {
+            peer::capture(peer_id, stakes);
+            return 0;
+        };
+        // capture partial loss, partial return
+        if (face_bps <= 100_00) {
+            let capture = pledge - rewards;
+            let assets = vector<FungibleAsset>[];
+            vector::for_each_reverse(stakes, |r| {
+                let amount = fungible_asset::amount(&r);
+                if (capture >= amount) {
+                    vector::push_back(&mut assets, r);
+                    capture -= amount;
+                } else {
+                    if (capture > 0) {
+                        let asset = fungible_asset::extract(&mut r, capture);
+                        vector::push_back(&mut assets, asset);
+                        capture = 0;
+                    };
+                    primary_fungible_store::deposit(player, r);
+                }
+            });
+            peer::capture(peer_id, assets);
+            return rewards;
+        };
+
+        // default
         let surplus = rewards - pledge;
         let present = peer::wedge(peer_id, surplus);
-        
-        let winner = signer::address_of(iam);
 
         // CapEx
         let instant = derive_proportion(rewards, edge_bps as u32);
@@ -103,16 +139,16 @@ module bearium::room {
         if (table::contains(registry, og)) {
             let dispatch = *table::borrow(registry, og);
             assert!(dispatch == true); // this is the placeholder for hooks
-            marketplace::dispatch(winner, rewards, &mut present, extra);
+            marketplace::dispatch(player, rewards, &mut present, extra);
         };
 
         // Payout
         let profit = fungible_asset::amount(&present);
         vector::push_back(&mut stakes, present);
         vector::for_each_reverse(stakes, |r| {
-            primary_fungible_store::deposit(winner, r);
+            primary_fungible_store::deposit(player, r);
         });
-        profit
+        pledge + profit
     }
 
     fun type_to_address<ORIGIN>(): address {
